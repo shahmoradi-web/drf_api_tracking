@@ -7,4 +7,6 @@ app_name = 'home'
 urlpatterns = [
     path('',home, name='home'),
     path('about/<str:username>/',about, name='about'),
+    path('register/', register, name='register'),
+
 ]
