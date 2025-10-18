@@ -9,9 +9,9 @@ class UserRegisterForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ('username','first_name','last_name', 'phone')
+        fields = ('username','first_name','last_name','email')
 
-    def clean(self):
+    def clean_password2(self):
         cd = self.cleaned_data
         if cd['password1'] != cd['password2']:
             raise ValidationError('پسورد ها مطابقت ندارد')
