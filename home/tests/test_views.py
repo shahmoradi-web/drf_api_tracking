@@ -1,7 +1,9 @@
-from django.test import TestCase, Client
+from django.test import TestCase, Client, RequestFactory
 from django.urls import reverse
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AnonymousUser
 from home.forms import UserRegisterForm
+from home.views import home
+
 
 class TestUserRegisterView(TestCase):
     def setUp(self):
@@ -38,3 +40,19 @@ class TestUserRegisterView(TestCase):
         self.failIf(response.context['form'].is_valid())
         self.assertFormError(form=response.context['form'],field='email',errors='Enter a valid email address.')
 
+class TestHomeViews(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='root', email='root@email.com', password='rootpass')
+        self.factory = RequestFactory()
+
+    def test_home_user_authenticated(self):
+        request = self.factory.get(reverse('home:home'))
+        request.user = self.user
+        response = home(request)
+        self.assertEqual(response.status_code, 302)
+
+    def test_home_user_anonymous(self):
+        request = self.factory.get(reverse('home:home'))
+        request.user = AnonymousUser()
+        response = home(request)
+        self.assertEqual(response.status_code, 200)

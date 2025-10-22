@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
 from home.forms import UserRegisterForm
 
@@ -8,9 +8,12 @@ from home.forms import UserRegisterForm
 
 
 def home(request):
-    return HttpResponse("Hello, world. You're at the polls home view.")
+    if request.user.is_authenticated:
+        redirect('home:about')
+    else:
+        return render(request, 'home.html')
 
-def about(request, username):
+def about(request):
     return HttpResponse("About You")
 
 
