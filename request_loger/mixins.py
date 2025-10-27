@@ -1,4 +1,8 @@
 from .base_mixins import BaseLogginMixin
+from .models import APIRequestLog
+
 
 class LoggingMixin(BaseLogginMixin):
-    pass
+    def handle_log(self):
+
+        APIRequestLog(**self.log).save()
