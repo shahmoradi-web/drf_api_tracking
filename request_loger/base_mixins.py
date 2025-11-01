@@ -8,15 +8,25 @@ from .app_settings import app_settings
 
 logger = logging.getLogger(__name__)
 
-class BaseLogginMixin:
+class BaseLogginMixin(object):
 
     logging_methods = "__all__"
     CLEANED_SUBSTITUTE = "********************"
     sensitive_fields = {}
 
+    def __init__(self, *args, **kwargs):
+        assert isinstance(self.CLEANED_SUBSTITUTE, str), "CLEANED_SUBSTITUTE must be a string."
+        super(BaseLogginMixin, self).__init__(*args, **kwargs)
+
     def initial(self, request, *args, **kwargs):
         self.log = {"requested_at": now()}
         super().initial(request, *args, **kwargs)
+
+        self.log["data"] = (
+            self._clean_data(request.data)
+            if getattr(self, "decode_request_body", app_settings.DECODE_REQUEST_BODY)
+            else ""
+        )
 
     def finalize_response(self, request, response, *args, **kwargs):
         response = super(BaseLogginMixin, self).finalize_response(request, response, *args, **kwargs)
@@ -124,6 +134,9 @@ class BaseLogginMixin:
         )
 
     def _clean_data(self, data):
+
+        if isinstance(data, bytes):
+            data = data.decode(errors="replace")
 
         if isinstance(data, list):
             return [self._clean_data(d) for d in data]

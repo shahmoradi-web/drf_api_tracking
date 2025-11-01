@@ -13,4 +13,9 @@ class AppSettings(object):
         """Maximum length of request path to log"""
         return self._setting("PATH_LENGTH", 200)
 
+    @property
+    def DECODE_REQUEST_BODY(self):
+
+        return self._setting("DECODE_REQUEST_BODY", True)
+
 app_settings = AppSettings("DRF_TRACKING_")
