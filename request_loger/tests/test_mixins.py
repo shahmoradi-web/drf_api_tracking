@@ -1,4 +1,6 @@
+import ast
 
+from django.contrib.auth.models import User
 from django.test.utils import override_settings
 
 from rest_framework.test import APIRequestFactory, APITestCase
@@ -100,3 +102,58 @@ class TestLoggingMixin(APITestCase):
         self.client.get("/logging")
         log = APIRequestLog.objects.first()
         self.assertEqual(log.status_code, 200)
+
+    def test_logging_explicit(self):
+        self.client.get("/explicit-logging")
+        self.client.post("/explicit-logging")
+        self.assertEqual(APIRequestLog.objects.all().count(), 1)
+
+    def test_custom_check_logging(self):
+        self.client.get("/custom-check-logging")
+        self.client.post("/custom-check-logging")
+        self.assertEqual(APIRequestLog.objects.all().count(), 1)
+
+    def test_custom_check_logging_with_logging_methods_fail(self):
+        """Custom `should_log` does not respect logging_methods."""
+        self.client.get("/custom-check-logging-methods-fail")
+        self.client.post("/custom-check-logging-methods-fail")
+        self.assertEqual(APIRequestLog.objects.all().count(), 2)
+
+    def test_log_anon_user(self):
+        self.client.get("/logging")
+        log = APIRequestLog.objects.first()
+        self.assertEqual(log.user, None)
+
+    def test_log_auth_user(self):
+        # set up active user
+        User.objects.create_user(username="myname", password="secret")
+        user = User.objects.get(username="myname")
+
+        # set up request with auth
+        self.client.login(username="myname", password="secret")
+        self.client.get("/session-auth-logging")
+
+        # test
+        log = APIRequestLog.objects.first()
+        self.assertEqual(log.user, user)
+
+    def test_log_params(self):
+        self.client.get("/logging", {"p1": "a", "another": "2"})
+        log = APIRequestLog.objects.first()
+        self.assertEqual(ast.literal_eval(log.query_params), {"p1": "a", "another": "2"})
+
+    def test_log_params_cleaned(self):
+        self.client.get("/logging", {"password": "1234", "key": "12345", "secret": "123456"})
+        log = APIRequestLog.objects.first()
+        self.assertEqual(
+            ast.literal_eval(log.query_params),
+            {
+                "password": BaseLogginMixin.CLEANED_SUBSTITUTE,
+                "key": BaseLogginMixin.CLEANED_SUBSTITUTE,
+                "secret": BaseLogginMixin.CLEANED_SUBSTITUTE,
+            },
+        )
+
+    def test_invalid_cleaned_substitute_fails(self):
+        with self.assertRaises(AssertionError):
+            self.client.get("/invalid-cleaned-substitute-logging")
